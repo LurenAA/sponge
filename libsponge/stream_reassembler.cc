@@ -2,6 +2,9 @@
 #include <cassert>
 #include <algorithm>
 
+
+
+
 // Dummy implementation of a stream reassembler.
 
 // For Lab 1, please replace with a real implementation that passes the
@@ -15,7 +18,7 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity): _output(capacity), _capacity(capacity), _unassembledSize(0), _indexedRead(0), _unassembledDataVec() {
-
+    assert(0);
 }
 
 //! \details This function accepts a substring (aka a segment) of bytes,
@@ -23,36 +26,36 @@ StreamReassembler::StreamReassembler(const size_t capacity): _output(capacity), 
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
     // DUMMY_CODE(data, index, eof);
-    string data1 = data;
-    size_t index1 = index;
-    bool eofFlag = eof;
-    size_t dataSz = data1.size();
-    size_t startIdx = 0;
+    string dataCopy = data;
+    size_t indexCopy = index;
+    bool eofCopy = eof;
+    size_t dataSz = dataCopy.size();
+    size_t dataStartIdx = 0;
 
-    if(index1 < _indexedRead && index1 + dataSz <= _indexedRead)
+    // indexCopy < _indexedRead: data = "" , eof = true
+    if(indexCopy < _indexedRead && indexCopy + dataSz <= _indexedRead)
         return ;
-    // else if (index1 == _indexedRead) {
-    //     // do nothing
-    // } 
-    else if (index1 < _indexedRead && index1 + dataSz > _indexedRead) {
-        startIdx = _indexedRead - index1;
-        dataSz = dataSz - (_indexedRead - index1);
-    } else if (index1 > _indexedRead) {
-        push_into_unassembled_vec(data1, index1, eofFlag);
+    else if (indexCopy < _indexedRead && indexCopy + dataSz > _indexedRead) {
+        dataStartIdx = _indexedRead - indexCopy;
+        dataSz = dataSz - (_indexedRead - indexCopy);
+    } else if (indexCopy > _indexedRead) {
+        push_into_unassembled_vec(dataCopy, indexCopy, eofCopy);
         return ;
     }
 
-    // size_t room = _capacity - (_unassembledSize + _output.buffer_size());
     size_t roomCanRead = _capacity - _output.buffer_size();
 
     if(roomCanRead < dataSz) {
         dataSz = roomCanRead;
-        eofFlag = false;
+        eofCopy = false;
     }
 
+    // = for data.size() == 0
+    assert(dataStartIdx <= data.size());
+
     _indexedRead += dataSz;
-    _output.write(data1.substr(startIdx, dataSz));
-    if (eofFlag)
+    _output.write(dataCopy.substr(dataStartIdx, dataSz));
+    if (eofCopy)
         _output.end_input();
     
     assemble();
@@ -64,35 +67,38 @@ void StreamReassembler::clean() {
     if(_capacity >= _unassembledSize + _output.buffer_size())  
         return ;
     size_t n = _unassembledSize + _output.buffer_size() - _capacity;
+ 
     for(auto ri = _unassembledDataVec.rbegin(); 
         ri != _unassembledDataVec.rend(); 
         ++ri) {
         auto sz = ri->data.size();
         if(sz <= n) {
-            _unassembledSize -= sz;
             _unassembledDataVec.erase((ri + 1).base());
             n -= sz;
         } else if(sz > n) {
-            _unassembledSize -= n;
             ri->data = ri->data.substr(0, sz - n);
             ri->endIndex = ri->endIndex - n;
             if(ri->eof) ri->eof = false;
             n = 0;
         }
 
-        if(!n) return ;    
+        if(!n) break ;    
     }
+
+    _unassembledSize -= n;
 }
 
 void StreamReassembler::push_into_unassembled_vec(const string &data, const size_t index, const bool eof) {
     auto idx = index > _indexedRead ? index : _indexedRead;
     auto substrStart = index >= _indexedRead ? 0 : _indexedRead - index;
+    
+    assert(substrStart <= data.size());
+
     auto str = data.substr(substrStart);
     bool eofFlag = eof;
     
-    remove_duplicate_part(str, idx, eofFlag);
-    if(!str.size())
-        return ;
+    if(!remove_duplicate_part(str, idx)) return ;
+
 
     auto endIdx = str.size() ? idx + str.size() - 1 : idx;
 
@@ -102,10 +108,7 @@ void StreamReassembler::push_into_unassembled_vec(const string &data, const size
     _unassembledSize += str.size();
 }
 
-void StreamReassembler::remove_duplicate_part(string &data, size_t& idx, bool& eof) {
-    idx = idx > _indexedRead ? idx : _indexedRead;
-    auto substrStart = idx >= _indexedRead ? 0 : _indexedRead - idx;
-    data = data.substr(substrStart);
+bool StreamReassembler::remove_duplicate_part(string &data, size_t& idx) {
     auto endIdx = data.size() ? idx + data.size() - 1 : idx;
 
     for(auto itor = _unassembledDataVec.begin(); 
@@ -114,20 +117,25 @@ void StreamReassembler::remove_duplicate_part(string &data, size_t& idx, bool& e
     {
         auto li = itor->index;
         auto ri = itor->endIndex;
-        if (idx < li && endIdx <= ri) {
+        if (idx < li && li <= endIdx && endIdx <= ri) {
             endIdx = li - 1;
+
+            assert(endIdx + 1 - idx <= data.size());
+
             data = data.substr(0, endIdx + 1 - idx);
         } else if (idx < li && endIdx > ri) {
             remove_unassembled_element(itor);        
         } else if(li <= idx && endIdx <= ri) {
-            data = "";
-            return ;
+            return false;
         } else if(li <= idx && idx <= ri && endIdx > ri) {
+            assert(ri - idx + 1 < data.size());
+
             data = data.substr(ri - idx + 1);
             idx = ri + 1;
-            eof = false;
         } 
     }
+
+    return true;
 }
 
 
@@ -139,21 +147,26 @@ void StreamReassembler::assemble() {
          }
     );
 
-    bool used = false;
     for(auto itr = _unassembledDataVec.begin(); 
         itr != _unassembledDataVec.end(); 
         ++itr) 
     {
-        if(itr->index <= _indexedRead  && _indexedRead <= itr->endIndex && !used) {
-            used = true;
+        if (itr->endIndex < _indexedRead) {
+            remove_unassembled_element(itr);
+        }
+    }
+
+
+    for(auto itr = _unassembledDataVec.begin(); 
+        itr != _unassembledDataVec.end(); 
+        ++itr) 
+    {
+        if(itr->index <= _indexedRead  && _indexedRead <= itr->endIndex ) {
             UnassembledStr s(*itr);
             remove_unassembled_element(itr);
             push_substring(s.data, s.index, s.eof);
             break ;
-        }
-        else if (itr->endIndex < _indexedRead) {
-            remove_unassembled_element(itr);
-        }
+        }   
     }
 }
 

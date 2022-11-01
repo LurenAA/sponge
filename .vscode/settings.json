@@ -52,6 +52,7 @@
         "span": "cpp",
         "util": "cpp",
         "assert": "cpp",
-        "span_ext": "cpp"
+        "span_ext": "cpp",
+        "cassert": "cpp"
     }
 }
