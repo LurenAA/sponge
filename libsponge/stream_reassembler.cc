@@ -89,7 +89,10 @@ void StreamReassembler::push_into_unassembled_vec(const string &data, const size
     auto substrStart = index >= _indexedRead ? 0 : _indexedRead - index;
     auto str = data.substr(substrStart);
     bool eofFlag = eof;
+    
     remove_duplicate_part(str, idx, eofFlag);
+    if(!str.size())
+        return ;
 
     auto endIdx = str.size() ? idx + str.size() - 1 : idx;
 
@@ -117,10 +120,11 @@ void StreamReassembler::remove_duplicate_part(string &data, size_t& idx, bool& e
         } else if (idx < li && endIdx > ri) {
             remove_unassembled_element(itor);        
         } else if(li <= idx && endIdx <= ri) {
+            data = "";
             return ;
         } else if(li <= idx && idx <= ri && endIdx > ri) {
-            idx = ri + 1;
             data = data.substr(ri - idx + 1);
+            idx = ri + 1;
             eof = false;
         } 
     }
@@ -135,15 +139,20 @@ void StreamReassembler::assemble() {
          }
     );
 
+    bool used = false;
     for(auto itr = _unassembledDataVec.begin(); 
         itr != _unassembledDataVec.end(); 
         ++itr) 
     {
-        if(itr->index <= _indexedRead  && _indexedRead <= itr->endIndex) {
+        if(itr->index <= _indexedRead  && _indexedRead <= itr->endIndex && !used) {
+            used = true;
             UnassembledStr s(*itr);
             remove_unassembled_element(itr);
             push_substring(s.data, s.index, s.eof);
-            return ;
+            break ;
+        }
+        else if (itr->endIndex < _indexedRead) {
+            remove_unassembled_element(itr);
         }
     }
 }
