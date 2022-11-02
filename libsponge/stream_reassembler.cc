@@ -18,7 +18,6 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity): _output(capacity), _capacity(capacity), _unassembledSize(0), _indexedRead(0), _unassembledDataVec() {
-    assert(0);
 }
 
 //! \details This function accepts a substring (aka a segment) of bytes,

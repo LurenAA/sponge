@@ -53,6 +53,7 @@
         "util": "cpp",
         "assert": "cpp",
         "span_ext": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "variant": "cpp"
     }
 }
