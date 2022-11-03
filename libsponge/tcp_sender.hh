@@ -36,7 +36,13 @@ class TCPSender {
     size_t _rto;
     size_t _timerCount;
     uint16_t _windowSize;
-    std::vector<TCPSegment> _outstanding_out;
+    struct TCPSegmentRe
+    {
+      TCPSegment segment;
+      bool ifZeroWindow;
+    };
+    
+    std::vector<TCPSegmentRe> _outstanding_out;
     size_t _consecutiveSendCount;
     uint64_t _last_acked;
 

@@ -26,7 +26,7 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 uint64_t TCPSender::bytes_in_flight() const {
     uint64_t n = 0;
     for(const auto& seg: _outstanding_out) {
-        n += seg.length_in_sequence_space();
+        n += seg.segment.length_in_sequence_space();
     }
     return n; 
 }
@@ -47,7 +47,9 @@ void TCPSender::fill_window() {
         seg.header() = header;
 
         _segments_out.push(seg);
-        _outstanding_out.push_back(seg);
+
+        // default not zero window
+        _outstanding_out.push_back({seg, false});
         _next_seqno += seg.length_in_sequence_space();
 
         assert(seg.length_in_sequence_space() == 1);
@@ -103,7 +105,7 @@ void TCPSender::fill_window() {
         _next_seqno += seg.length_in_sequence_space();
 
         _segments_out.push(seg);
-        _outstanding_out.push_back(seg);
+        _outstanding_out.push_back({seg, _windowSize == 0});
 
         if(!_timerCount) 
             _timerCount = _rto;
@@ -127,7 +129,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     int deleteCount = 0;
     while(_outstanding_out.size()){
         auto head = _outstanding_out.front();
-        auto headSeqnoAb = unwrap(head.header().seqno + head.length_in_sequence_space(), _isn, _next_seqno);
+        auto headSeqnoAb = unwrap(head.segment.header().seqno + head.segment.length_in_sequence_space(), _isn, _next_seqno);
         if(headSeqnoAb <= acknoAb) {
             deleteCount += 1;
             _outstanding_out.erase(_outstanding_out.begin());
@@ -161,12 +163,12 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
     }
 
     auto seg = _outstanding_out.front();
-    _segments_out.push(seg);
-
-    // if(_windowSize) {   
+    _segments_out.push(seg.segment);
+    
+    if(!seg.ifZeroWindow) {  
         ++_consecutiveSendCount;
         _rto *= 2;
-    // }
+    }
 
     _timerCount = _rto;
 }
