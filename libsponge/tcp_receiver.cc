@@ -30,8 +30,12 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     if(abIdx == 0 && !header.syn) //abidx 0 => syn, prevent no syn datagram rewrite to abIdx 0
         return ;
     _reassembler.push_substring(data, abIdx ? abIdx - 1 : 0, header.fin? true: false);
-    // if(header.fin)
-    //     stream_out().end_input();
+
+    if(header.fin)
+        receiveFin = true;
+
+    if(receiveFin && unassembled_bytes() == 0)
+        stream_out().end_input();
 }
 
 optional<WrappingInt32> TCPReceiver::ackno() const {

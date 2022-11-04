@@ -21,6 +21,13 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
+    size_t timeSinceLastSeg;
+    size_t rtTimeCount;
+    bool lingerInactive;
+    bool hasSendFin;
+    void send_to_segout(bool ifRst = false);
+    
+
   public:
     //! \name "Input" interface for the writer
     //!@{
@@ -81,7 +88,8 @@ class TCPConnection {
     //!@}
 
     //! Construct a new connection from a configuration
-    explicit TCPConnection(const TCPConfig &cfg) : _cfg{cfg} {}
+    explicit TCPConnection(const TCPConfig &cfg) : _cfg{cfg},timeSinceLastSeg{0},
+    rtTimeCount{0},lingerInactive{0},hasSendFin{0} {}
 
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible

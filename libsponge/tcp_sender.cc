@@ -143,13 +143,14 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         _consecutiveSendCount = 0;
     }
 
-    if(_windowSize + _last_acked >= _next_seqno) {
-        fill_window();
-    }
+    // if(_windowSize + _last_acked >= _next_seqno) {
+    //     fill_window();
+    // }
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
+    
     // DUMMY_CODE(ms_since_last_tick); 
     if(!_timerCount) return ;
     if(_timerCount > ms_since_last_tick) {
@@ -164,7 +165,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
 
     auto seg = _outstanding_out.front();
     _segments_out.push(seg.segment);
-    
+
     if(!seg.ifZeroWindow) {  
         ++_consecutiveSendCount;
         _rto *= 2;
