@@ -49,7 +49,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         const uint16_t &windowSize = header.win;
 
         _sender.ack_received(ackno, windowSize);
-    }
+    } 
 
     if (header.syn && !_sender.next_seqno_absolute()) {
         connect();
@@ -176,8 +176,6 @@ TCPConnection::~TCPConnection() {
 }
 
 void TCPConnection::send_to_segout(bool ifLastRst) {
-    static bool hasFin = false;
-
     auto &senderQ = _sender.segments_out();
     auto qSize = senderQ.size();
     if (!qSize)

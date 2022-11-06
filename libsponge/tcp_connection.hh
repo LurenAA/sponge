@@ -24,6 +24,7 @@ class TCPConnection {
     size_t timeSinceLastSeg;
     size_t rtTimeCount;
     bool cleanClosed;
+    bool hasFin = false;
     void send_to_segout(bool ifRst = false);
     void clearBothQueue();
     void activeEnd();
