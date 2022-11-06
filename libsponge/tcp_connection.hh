@@ -23,10 +23,10 @@ class TCPConnection {
 
     size_t timeSinceLastSeg;
     size_t rtTimeCount;
-    bool lingerInactive;
-    bool hasSendFin;
+    bool cleanClosed;
     void send_to_segout(bool ifRst = false);
-    
+    void clearBothQueue();
+    void activeEnd();
 
   public:
     //! \name "Input" interface for the writer
@@ -89,7 +89,7 @@ class TCPConnection {
 
     //! Construct a new connection from a configuration
     explicit TCPConnection(const TCPConfig &cfg) : _cfg{cfg},timeSinceLastSeg{0},
-    rtTimeCount{0},lingerInactive{0},hasSendFin{0} {}
+    rtTimeCount{0},cleanClosed{false} {}
 
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible

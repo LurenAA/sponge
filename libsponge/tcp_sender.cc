@@ -150,7 +150,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
-    
+
     // DUMMY_CODE(ms_since_last_tick); 
     if(!_timerCount) return ;
     if(_timerCount > ms_since_last_tick) {
@@ -183,11 +183,6 @@ void TCPSender::send_empty_segment() {
     header.seqno = wrap(_next_seqno, _isn);
     TCPSegment seg;
     seg.header() = header;
-    // if(stream_in().buffer_size()) {
-    //     string s(stream_in().peek_output(1));
-    //     seg.payload() = Buffer(move(s));
-    // }
-    // assert(!seg.length_in_sequence_space());
 
     _segments_out.push(seg);
 }
