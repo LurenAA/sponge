@@ -13,6 +13,8 @@ using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
     // DUMMY_CODE(seg);
+    if(!seg.length_in_sequence_space())
+        return ;
     auto header = seg.header();
     if(!header.syn && !_senderISN.has_value())
         return ;
@@ -24,16 +26,20 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
         _checkpoint = 0;
     }
 
+    //absolute seqno
     uint64_t abIdx = unwrap(header.seqno, _senderISN.value(), _checkpoint);
     _checkpoint = abIdx;
     string data = seg.payload().copy();
+
+    //syn报文也能携带数据，对方先发出syn请求的话
     if(abIdx == 0 && !header.syn) //abidx 0 => syn, prevent no syn datagram rewrite to abIdx 0
         return ;
+    //stream index
     _reassembler.push_substring(data, abIdx ? abIdx - 1 : 0, header.fin? true: false);
 
     if(header.fin)
         receiveFin = true;
-
+    
     if(receiveFin && unassembled_bytes() == 0)
         stream_out().end_input();
 }
