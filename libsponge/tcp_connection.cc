@@ -65,6 +65,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         //当只是ack时，不需要发送一个空报文去ack一个ack，只对于keepalive才回复
         _sender.send_empty_segment();
     } else if(synAsked || seg.length_in_sequence_space()) {
+        //在建立建立连接后，收到ACK，如果窗口变大，可以继续发送数据，即使报文没有占据空间
         _sender.fill_window();
         //输出数据流没有数据的情况
         if (!_sender.segments_out().size() && seg.length_in_sequence_space())
@@ -105,13 +106,17 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     timeSinceLastSeg += ms_since_last_tick;
 
     _sender.tick(ms_since_last_tick);
+    send_to_segout();
 
     unsigned int retransTimes = _sender.consecutive_retransmissions();
     if (retransTimes > TCPConfig::MAX_RETX_ATTEMPTS && active()) {
         clearBothQueue();
         _sender.send_empty_segment();
+        send_to_segout(true);
+        _sender.stream_in().set_error();
+        _receiver.stream_out().set_error();
+        //发送RST之后直接进入inactive状态
     }
-    send_to_segout(true);
 
     if (rtTimeCount && ms_since_last_tick >= rtTimeCount) {
         cleanClosed = true;
