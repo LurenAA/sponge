@@ -58,17 +58,17 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         return ;
     }
 
-    if (seg.length_in_sequence_space()) {
-        _sender.fill_window();
-        //输出数据流没有数据的情况
-        if (!_sender.segments_out().size())
-            _sender.send_empty_segment();
-    } else if( 
-            keepAliveTestCase    //单纯的Ack报文 SeqNo占刚好下一个AckNo
-        )
+    bool synAsked = (_sender.next_seqno_absolute() > _sender.bytes_in_flight() && !_sender.stream_in().eof() )|| 
+        (_sender.stream_in().eof() && _sender.next_seqno_absolute() < _sender.stream_in().bytes_written() + 2);
+    if(keepAliveTestCase)    //单纯的Ack报文 SeqNo占刚好下一个AckNo
     {
         //当只是ack时，不需要发送一个空报文去ack一个ack，只对于keepalive才回复
         _sender.send_empty_segment();
+    } else if(synAsked || seg.length_in_sequence_space()) {
+        _sender.fill_window();
+        //输出数据流没有数据的情况
+        if (!_sender.segments_out().size() && seg.length_in_sequence_space())
+            _sender.send_empty_segment(); 
     }
 
     send_to_segout();
@@ -82,7 +82,9 @@ bool TCPConnection::active() const {
 
 size_t TCPConnection::write(const string &data) {
     // DUMMY_CODE(data);
-    return _sender.stream_in().write(data);
+    auto sz = _sender.stream_in().write(data);
+    _sender.fill_window();
+    return sz;
 }
 
 void TCPConnection::clearBothQueue() {
