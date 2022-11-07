@@ -1,4 +1,4 @@
-#include "socket.hh"
+#include "tcp_sponge_socket.hh"
 #include "util.hh"
 
 #include <cstdlib>
@@ -22,7 +22,7 @@ void get_URL(const string &host, const string &path) {
     constexpr char httpConstServiceStr[] = "http";
 
     Address addr(host, httpConstServiceStr);
-    TCPSocket sock;
+    CS144TCPSocket sock;
     sock.connect(addr);
 
     string httpRequestStr(
@@ -38,6 +38,7 @@ void get_URL(const string &host, const string &path) {
     }
     
     sock.close();
+    sock.wait_until_closed();
 }
 
 int main(int argc, char *argv[]) {
