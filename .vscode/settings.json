@@ -55,5 +55,6 @@
         "span_ext": "cpp",
         "cassert": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }
