@@ -22,7 +22,7 @@ void get_URL(const string &host, const string &path) {
     constexpr char httpConstServiceStr[] = "http";
 
     Address addr(host, httpConstServiceStr);
-    CS144TCPSocket sock;
+    FullStackSocket sock;
     sock.connect(addr);
 
     string httpRequestStr(
