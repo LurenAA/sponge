@@ -1,6 +1,8 @@
 #include "router.hh"
 
 #include <iostream>
+#include <algorithm>
+#include <limits>
 
 using namespace std;
 
@@ -29,14 +31,47 @@ void Router::add_route(const uint32_t route_prefix,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/" << int(prefix_length)
          << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)") << " on interface " << interface_num << "\n";
 
-    DUMMY_CODE(route_prefix, prefix_length, next_hop, interface_num);
+    // DUMMY_CODE(route_prefix, prefix_length, next_hop, interface_num);
     // Your code here.
+    RouteInfo newOne{route_prefix, prefix_length, next_hop, interface_num};
+    // auto itr = find_if(routeTable.begin(), routeTable.end(), [&](const RouteInfo& l){
+    //     return route_prefix == l.route_prefix && 
+    //         prefix_length == l.prefix_length;
+    // });
+    // if(itr != routeTable.end())
+    //     routeTable.erase(itr);
+    routeTable.push_back(move(newOne));
 }
 
 //! \param[in] dgram The datagram to be routed
 void Router::route_one_datagram(InternetDatagram &dgram) {
-    DUMMY_CODE(dgram);
+    // DUMMY_CODE(dgram);
     // Your code here.
+    if(dgram.header().ttl <= 1) 
+        return ;
+    
+    --dgram.header().ttl;
+
+    size_t matchLen = 0;
+    auto targetItr = routeTable.end();
+
+    const auto ip = dgram.header().dst;
+    for(auto itr = routeTable.begin(); itr != routeTable.end(); ++itr) {
+        uint32_t pref = ((ip >> (32 - itr->prefix_length)) << (32 - itr->prefix_length));
+        if(itr->route_prefix  == pref || !itr->prefix_length){
+            if(itr->prefix_length >= matchLen) {
+                matchLen = itr->prefix_length;
+                targetItr = itr;
+            }
+        }
+    }
+    if(targetItr == routeTable.end())
+        return ;
+    
+    interface(targetItr->interface_num).send_datagram(
+        dgram, 
+        targetItr->next_hop.has_value()? targetItr->next_hop.value():Address::from_ipv4_numeric(ip)
+        );
 }
 
 void Router::route() {
